@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36414.22 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "GSBAP2", "GSBAP2\GSBAP2.vbproj", "{AD9C81CE-405D-487D-B7D1-0E28DE95EEFC}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{AD9C81CE-405D-487D-B7D1-0E28DE95EEFC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AD9C81CE-405D-487D-B7D1-0E28DE95EEFC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AD9C81CE-405D-487D-B7D1-0E28DE95EEFC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AD9C81CE-405D-487D-B7D1-0E28DE95EEFC}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2ABD1BE8-F07A-4019-AD43-178931ED813A}
+	EndGlobalSection
+EndGlobal
