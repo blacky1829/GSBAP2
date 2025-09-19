@@ -38,7 +38,7 @@
         ElseIf rBronze.Checked Then
             score = 3
         ElseIf rAbandon.Checked Then
-            abandon = "Oui"
+            abandon = "Ouip"
         End If
 
         ' Affiche le résultat dans le label
