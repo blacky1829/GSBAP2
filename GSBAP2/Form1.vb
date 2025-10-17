@@ -2,24 +2,20 @@
 
 
 
+
+
     Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
 
 
     End Sub
 
-    Private Sub SelectDiscipline_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cmbDisciplines.SelectedIndexChanged
 
+    Private Sub RadioButton1_CheckedChanged(sender As Object, e As EventArgs) Handles rAbandon.CheckedChanged, LAfficheScore.Click
+        LAfficheScore.Text = "0"
     End Sub
 
-    Private Sub LabelTOOp_Click(sender As Object, e As EventArgs) Handles LabelTOOp.Click
-
-    End Sub
-
-    Private Sub RadioButton1_CheckedChanged(sender As Object, e As EventArgs) Handles rAbandon.CheckedChanged
-
-    End Sub
-
-    Private Sub RadioButton4_CheckedChanged(sender As Object, e As EventArgs) Handles rOr.CheckedChanged
+    Private Sub RadioButton4_CheckedChanged(sender As Object, e As EventArgs) Handles rOr.CheckedChanged, LAfficheScore.Click
+        LAfficheScore.Text = "1"
 
     End Sub
     Private Sub btnValider_Click(sender As Object, e As EventArgs) Handles btnValider.Click
@@ -46,47 +42,19 @@
         MessageBox.Show(prenom & " " & nom & vbCrLf & "Score : " & score & vbCrLf & "Discipline : " & selected, "Confirmation")
     End Sub
 
-    Private Sub LabelName_Click(sender As Object, e As EventArgs) Handles LabelName.Click
+
+
+
+
+    Private Sub rArgent_CheckedChanged(sender As Object, e As EventArgs) Handles rArgent.CheckedChanged, LAfficheScore.Click
+        LAfficheScore.Text = "2"
 
     End Sub
 
-    Private Sub GroupBox1_Enter(sender As Object, e As EventArgs) Handles GroupBox1.Enter
-
+    Private Sub rBronze_CheckedChanged(sender As Object, e As EventArgs) Handles rBronze.CheckedChanged, LAfficheScore.Click
+        LAfficheScore.Text = "3"
     End Sub
 
-    Private Sub GroupBox2_Enter(sender As Object, e As EventArgs) Handles GroupBox2.Enter
 
-    End Sub
 
-    Private Sub DateTimePicker1_ValueChanged(sender As Object, e As EventArgs) Handles DateTimePicker1.ValueChanged
-
-    End Sub
-
-    Private Sub Label3_Click(sender As Object, e As EventArgs) Handles Label3.Click
-
-    End Sub
-
-    Private Sub Label2_Click(sender As Object, e As EventArgs) Handles Label2.Click
-
-    End Sub
-
-    Private Sub rArgent_CheckedChanged(sender As Object, e As EventArgs) Handles rArgent.CheckedChanged
-
-    End Sub
-
-    Private Sub rBronze_CheckedChanged(sender As Object, e As EventArgs) Handles rBronze.CheckedChanged
-
-    End Sub
-
-    Private Sub TextBox3_TextChanged(sender As Object, e As EventArgs)
-
-    End Sub
-
-    Private Sub lblResultat_Click(sender As Object, e As EventArgs)
-
-    End Sub
-
-    Private Sub txtPrenom_TextChanged(sender As Object, e As EventArgs) Handles txtPrenom.TextChanged
-
-    End Sub
 End Class

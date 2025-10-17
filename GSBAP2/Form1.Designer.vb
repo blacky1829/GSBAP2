@@ -39,6 +39,9 @@ Partial Class Form1
         Me.rBronze = New System.Windows.Forms.RadioButton()
         Me.rOr = New System.Windows.Forms.RadioButton()
         Me.Label5 = New System.Windows.Forms.Label()
+        Me.LAfficheScore = New System.Windows.Forms.Label()
+        Me.Lscore = New System.Windows.Forms.Label()
+        Me.CheckBox1 = New System.Windows.Forms.CheckBox()
         Me.GroupBox1.SuspendLayout()
         Me.GroupBox2.SuspendLayout()
         Me.SuspendLayout()
@@ -223,15 +226,47 @@ Partial Class Form1
         Me.Label5.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.Label5.Location = New System.Drawing.Point(142, 353)
         Me.Label5.Name = "Label5"
-        Me.Label5.Size = New System.Drawing.Size(54, 13)
+        Me.Label5.Size = New System.Drawing.Size(62, 13)
         Me.Label5.TabIndex = 12
-        Me.Label5.Text = "Médaille"
+        Me.Label5.Text = "Médaille :"
+        '
+        'LAfficheScore
+        '
+        Me.LAfficheScore.AutoSize = True
+        Me.LAfficheScore.Location = New System.Drawing.Point(304, 353)
+        Me.LAfficheScore.Name = "LAfficheScore"
+        Me.LAfficheScore.Size = New System.Drawing.Size(13, 13)
+        Me.LAfficheScore.TabIndex = 13
+        Me.LAfficheScore.Text = "0"
+        '
+        'Lscore
+        '
+        Me.Lscore.AutoSize = True
+        Me.Lscore.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.Lscore.Location = New System.Drawing.Point(250, 353)
+        Me.Lscore.Name = "Lscore"
+        Me.Lscore.Size = New System.Drawing.Size(48, 13)
+        Me.Lscore.TabIndex = 14
+        Me.Lscore.Text = "Score :"
+        '
+        'CheckBox1
+        '
+        Me.CheckBox1.AutoSize = True
+        Me.CheckBox1.Location = New System.Drawing.Point(0, 0)
+        Me.CheckBox1.Name = "CheckBox1"
+        Me.CheckBox1.Size = New System.Drawing.Size(81, 17)
+        Me.CheckBox1.TabIndex = 15
+        Me.CheckBox1.Text = "CheckBox1"
+        Me.CheckBox1.UseVisualStyleBackColor = True
         '
         'Form1
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.ClientSize = New System.Drawing.Size(424, 450)
+        Me.Controls.Add(Me.CheckBox1)
+        Me.Controls.Add(Me.Lscore)
+        Me.Controls.Add(Me.LAfficheScore)
         Me.Controls.Add(Me.Label5)
         Me.Controls.Add(Me.rOr)
         Me.Controls.Add(Me.rBronze)
@@ -269,4 +304,7 @@ Partial Class Form1
     Friend WithEvents rBronze As RadioButton
     Friend WithEvents rOr As RadioButton
     Friend WithEvents Label5 As Label
+    Friend WithEvents LAfficheScore As Label
+    Friend WithEvents Lscore As Label
+    Friend WithEvents CheckBox1 As CheckBox
 End Class
