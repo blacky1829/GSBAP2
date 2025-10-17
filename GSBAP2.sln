@@ -1,9 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36414.22 d17.14
+VisualStudioVersion = 17.14.36414.22
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "GSBAP2", "GSBAP2\GSBAP2.vbproj", "{AD9C81CE-405D-487D-B7D1-0E28DE95EEFC}"
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "TestsGsb", "GSBAP2\TestsGsb.vbproj", "{AD9C81CE-405D-487D-B7D1-0E28DE95EEFC}"
+EndProject
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "GSB-Application", "GSB-Application\GSB-Application.vbproj", "{046D0C88-F4A4-44B6-B26C-27D25EE437F8}"
+EndProject
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "TestMultipleForms", "TestMultipleForms\TestMultipleForms.vbproj", "{475648BB-2909-462B-A3AB-8B58E10C25FF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +19,14 @@ Global
 		{AD9C81CE-405D-487D-B7D1-0E28DE95EEFC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AD9C81CE-405D-487D-B7D1-0E28DE95EEFC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AD9C81CE-405D-487D-B7D1-0E28DE95EEFC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{046D0C88-F4A4-44B6-B26C-27D25EE437F8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{046D0C88-F4A4-44B6-B26C-27D25EE437F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{046D0C88-F4A4-44B6-B26C-27D25EE437F8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{046D0C88-F4A4-44B6-B26C-27D25EE437F8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{475648BB-2909-462B-A3AB-8B58E10C25FF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{475648BB-2909-462B-A3AB-8B58E10C25FF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{475648BB-2909-462B-A3AB-8B58E10C25FF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{475648BB-2909-462B-A3AB-8B58E10C25FF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
