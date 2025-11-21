@@ -11,9 +11,7 @@ Public Class LoginForm
         Me.StartPosition = FormStartPosition.CenterScreen
 
         ' Taille de la fenêtre
-        Me.ClientSize = New Size(640, 360)   ' Largeur = 350, Hauteur = 250
-        Me.MinimumSize = New Size(640, 360) ' Empêche le redimensionnement
-        Me.MaximumSize = New Size(1280, 720)
+        Me.ClientSize = New Size(640, 360)
 
         ' Couleurs
         Me.BackColor = Color.FromArgb(134, 178, 255)
@@ -51,10 +49,11 @@ Public Class LoginForm
         End If
 
         Try
-            Dim query As String = "SELECT NOMUSER, PRENOMUSER " &
-                                  "FROM GSBAdmin.UTILISATEUR " &
-                                  "WHERE UPPER(TRIM(USERNAME)) = UPPER(TRIM(?)) " &
-                                  "AND TRIM(PSWDUSER) = TRIM(?)"
+            Dim query As String = "SELECT NOMUSER, PRENOMUSER, ROLE, IDUSER " &
+                      "FROM GSBAdmin.UTILISATEUR " &
+                      "WHERE Trim(USERNAME) = ? " &
+                      "AND TRIM(PSWDUSER) = ?"
+
             myCommand = New OdbcCommand(query, myConnection)
             myCommand.Parameters.Add("USERNAME", OdbcType.VarChar).Value = username
             myCommand.Parameters.Add("PASSWORD", OdbcType.VarChar).Value = password
@@ -63,13 +62,21 @@ Public Class LoginForm
 
             If myReader.Read() Then
                 Dim fullname As String = myReader("NOMUSER").ToString() & " " & myReader("PRENOMUSER").ToString()
-                Me.Hide()
+                Dim role As String = myReader("ROLE").ToString() ' <-- récupérer le rôle
+                Dim id As String = myReader("IDUSER").ToString()
+
                 Dim main As New HomeForm()
-                main.lblWelcome.Text = "Bienvenue, " & fullname
+                main.UserFullName = fullname
+                main.UserRole = role
+                main.UserId = id
+                main.LoginRef = Me
+                Me.Hide()
                 main.Show()
+
             Else
                 MessageBox.Show("Nom d'utilisateur ou mot de passe incorrect.", "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End If
+
 
             myReader.Close()
         Catch ex As OdbcException
