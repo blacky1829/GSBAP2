@@ -1,5 +1,5 @@
 ﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()>
-Partial Class HomeForm
+Partial Class nouvHome
     Inherits System.Windows.Forms.Form
 
     'Form remplace la méthode Dispose pour nettoyer la liste des composants.
@@ -33,13 +33,13 @@ Partial Class HomeForm
         Me.TabControl1.Size = New System.Drawing.Size(799, 452)
         Me.TabControl1.TabIndex = 2
         '
-        'HomeForm
+        'nouvHome
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.ClientSize = New System.Drawing.Size(800, 450)
         Me.Controls.Add(Me.TabControl1)
-        Me.Name = "HomeForm"
+        Me.Name = "nouvHome"
         Me.Text = "Form1"
         Me.ResumeLayout(False)
 

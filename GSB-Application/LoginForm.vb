@@ -26,6 +26,10 @@ Public Class LoginForm
         txtPass.BackColor = Color.White ' jaune clair
         txtPass.ForeColor = Color.Black
 
+        ' Valeurs par défaut pour tests
+        txtUser.Text = "DJean"
+        txtPass.Text = "pass123"
+
         ' Chaîne de connexion ODBC
         connString = "DSN=ORA14;Uid=GSBApp;Pwd=Iroise29;"
         myConnection.ConnectionString = connString
@@ -63,9 +67,9 @@ Public Class LoginForm
             If myReader.Read() Then
                 Dim fullname As String = myReader("NOMUSER").ToString() & " " & myReader("PRENOMUSER").ToString()
                 Dim role As String = myReader("ROLE").ToString() ' <-- récupérer le rôle
-                Dim id As String = myReader("IDUSER").ToString()
+                Dim id As String = myReader("IDUSER")
 
-                Dim main As New HomeForm()
+                Dim main As New nouvHome()
                 main.UserFullName = fullname
                 main.UserRole = role
                 main.UserId = id

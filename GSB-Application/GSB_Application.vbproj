@@ -122,23 +122,17 @@
     <Import Include="System.Threading.Tasks" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Form1.Designer.vb">
-      <DependentUpon>Form1.vb</DependentUpon>
-    </Compile>
-    <Compile Include="Form1.vb">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="HomeForm.Designer.vb">
-      <DependentUpon>HomeForm.vb</DependentUpon>
-    </Compile>
-    <Compile Include="HomeForm.vb">
-      <SubType>Form</SubType>
+    <Compile Include="CreerCRTab.vb">
+      <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="LoginForm.Designer.vb">
       <DependentUpon>LoginForm.vb</DependentUpon>
     </Compile>
     <Compile Include="LoginForm.vb">
       <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MesCRTab.vb">
+      <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="My Project\Application.Designer.vb">
       <AutoGen>True</AutoGen>
@@ -156,13 +150,25 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+    <Compile Include="nouvHome.Designer.vb">
+      <DependentUpon>nouvHome.vb</DependentUpon>
+    </Compile>
+    <Compile Include="nouvHome.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="StatsRegTab.vb">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="StatsSecteurTab.vb">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="StatsTab.vb">
+      <SubType>UserControl</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Form1.resx">
-      <DependentUpon>Form1.vb</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="HomeForm.resx">
-      <DependentUpon>HomeForm.vb</DependentUpon>
+    <EmbeddedResource Include="CreerCRTab.resx">
+      <DependentUpon>CreerCRTab.vb</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="LoginForm.resx">
       <DependentUpon>LoginForm.vb</DependentUpon>
@@ -172,6 +178,18 @@
       <LastGenOutput>Resources.Designer.vb</LastGenOutput>
       <CustomToolNamespace>My.Resources</CustomToolNamespace>
       <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="nouvHome.resx">
+      <DependentUpon>nouvHome.vb</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="StatsRegTab.resx">
+      <DependentUpon>StatsRegTab.vb</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="StatsSecteurTab.resx">
+      <DependentUpon>StatsSecteurTab.vb</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="StatsTab.resx">
+      <DependentUpon>StatsTab.vb</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
