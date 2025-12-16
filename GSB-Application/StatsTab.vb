@@ -15,6 +15,10 @@ Public Class StatsTab
     Private panelStats As GroupBox
     Private panelInfos As GroupBox
     Private panelPortefeuille As GroupBox
+    Private ReadOnly _defaultUserId As Integer
+    Private _currentUserId As Integer
+
+
 
     Private dtDebut As DateTimePicker
     Private dtFin As DateTimePicker
@@ -27,11 +31,82 @@ Public Class StatsTab
 
     Public Sub New(userId As Integer)
         _userId = userId
+        _defaultUserId = userId ' <-- on stocke l'utilisateur par défaut
         Me.Dock = DockStyle.Fill
         InitializeUI()
         LoadPraticiens()
-        ConstruireStatsDynamiques(-1)
+        ConstruireStatsDynamiques(_defaultUserId) ' stats initiales
     End Sub
+
+
+
+    Public Sub LoadStatsForUser(userId As Integer)
+        _currentUserId = userId
+
+        LoadPraticiens()
+        LoadUserInfo(_currentUserId)
+        ConstruireStatsDynamiques()
+    End Sub
+
+
+
+    Public ReadOnly Property DefaultUserId As Integer
+        Get
+            Return _defaultUserId
+        End Get
+    End Property
+
+    Private Sub LoadUserInfo(userId As Integer)
+        panelInfos.Controls.Clear()
+        Try
+            Using conn As New OdbcConnection(connString)
+                conn.Open()
+                Dim sql As String = "SELECT NOMUSER, PRENOMUSER, EMAILUSER FROM GSBAdmin.UTILISATEUR WHERE IDUSER=?"
+                Using cmd As New OdbcCommand(sql, conn)
+                    cmd.Parameters.Add("p1", OdbcType.Int).Value = _currentUserId
+
+                    Using reader = cmd.ExecuteReader()
+                        If reader.Read() Then
+                            Dim yPos As Integer = 20
+                            panelInfos.Controls.Add(CaseStat(panelInfos, "Nom :", reader("NOMUSER").ToString(), yPos))
+                            yPos += 35
+                            panelInfos.Controls.Add(CaseStat(panelInfos, "Prénom :", reader("PRENOMUSER").ToString(), yPos))
+                            yPos += 35
+                            panelInfos.Controls.Add(CaseStat(panelInfos, "Email :", reader("EMAILUSER").ToString(), yPos))
+                        End If
+                    End Using
+                End Using
+            End Using
+        Catch ex As Exception
+            WriteLog("LoadUserInfo: " & ex.Message)
+        End Try
+    End Sub
+
+    Private Sub LoadPortefeuille(userId As Integer)
+        lbPortefeuille.Items.Clear()
+        Try
+            Using conn As New OdbcConnection(connString)
+                conn.Open()
+                Dim sql As String = "SELECT P.IDPRAT, NVL(P.NOMPRAT,''), NVL(P.PRENOMPRAT,''), NVL(P.SPECIALITEPRAT,'') " &
+                                "FROM GSBAdmin.PRATICIEN P JOIN GSBAdmin.PORTEFEUILLE PF ON PF.IDPRAT = P.IDPRAT " &
+                                "WHERE PF.IDUSER=? ORDER BY P.IDPRAT"
+                Using cmd As New OdbcCommand(sql, conn)
+                    cmd.Parameters.Add("p1", OdbcType.Int).Value = _currentUserId
+                    Using reader = cmd.ExecuteReader()
+                        While reader.Read()
+                            Dim label = If(String.IsNullOrWhiteSpace(reader("NOMPRAT").ToString()) AndAlso String.IsNullOrWhiteSpace(reader("PRENOMPRAT").ToString()),
+                                        $"ID {reader("IDPRAT")} | {reader("SPECIALITEPRAT")}",
+                                        $"{reader("NOMPRAT")} {reader("PRENOMPRAT")} | {reader("SPECIALITEPRAT")}")
+                            lbPortefeuille.Items.Add(label)
+                        End While
+                    End Using
+                End Using
+            End Using
+        Catch ex As Exception
+            WriteLog("LoadPortefeuille: " & ex.Message)
+        End Try
+    End Sub
+
 
     Private Sub ConstruireStatsDynamiques(Optional praticienId As Integer = -1)
         panelStats.Controls.Clear()
@@ -45,7 +120,7 @@ Public Class StatsTab
                 Dim sqlVisites As String = "SELECT COUNT(*) FROM GSBAdmin.CR WHERE IDUSER=? AND DATEVISITE BETWEEN ? AND ?"
                 If praticienId > 0 Then sqlVisites &= " AND IDPRAT = ?"
                 Using cmdVisites As New OdbcCommand(sqlVisites, conn)
-                    cmdVisites.Parameters.Add("p1", OdbcType.Int).Value = _userId
+                    cmdVisites.Parameters.Add("p1", OdbcType.Int).Value = _currentUserId
                     cmdVisites.Parameters.Add("p2", OdbcType.Date).Value = dtDebut.Value.Date
                     cmdVisites.Parameters.Add("p3", OdbcType.Date).Value = dtFin.Value.Date
                     If praticienId > 0 Then cmdVisites.Parameters.Add("p4", OdbcType.Int).Value = praticienId
@@ -62,7 +137,7 @@ Public Class StatsTab
                 "WHERE C.IDUSER=? AND C.DATEVISITE BETWEEN ? AND ?"
                 If praticienId > 0 Then sqlEchant &= " AND C.IDPRAT = ?"
                 Using cmdEchant As New OdbcCommand(sqlEchant, conn)
-                    cmdEchant.Parameters.Add("p1", OdbcType.Int).Value = _userId
+                    cmdEchant.Parameters.Add("p1", OdbcType.Int).Value = _currentUserId
                     cmdEchant.Parameters.Add("p2", OdbcType.Date).Value = dtDebut.Value.Date
                     cmdEchant.Parameters.Add("p3", OdbcType.Date).Value = dtFin.Value.Date
                     If praticienId > 0 Then cmdEchant.Parameters.Add("p4", OdbcType.Int).Value = praticienId
@@ -77,14 +152,14 @@ Public Class StatsTab
                 Dim sqlPrats As String = "SELECT COUNT(DISTINCT IDPRAT) FROM GSBAdmin.CR WHERE IDUSER=? AND DATEVISITE BETWEEN ? AND ?"
                 If praticienId > 0 Then sqlPrats &= " AND IDPRAT = ?"
                 Using cmdPrats As New OdbcCommand(sqlPrats, conn)
-                    cmdPrats.Parameters.Add("p1", OdbcType.Int).Value = _userId
+                    cmdPrats.Parameters.Add("p1", OdbcType.Int).Value = _currentUserId
                     cmdPrats.Parameters.Add("p2", OdbcType.Date).Value = dtDebut.Value.Date
                     cmdPrats.Parameters.Add("p3", OdbcType.Date).Value = dtFin.Value.Date
                     If praticienId > 0 Then cmdPrats.Parameters.Add("p4", OdbcType.Int).Value = praticienId
 
                     Dim nbPratsObj As Object = cmdPrats.ExecuteScalar()
                     Dim nbPrats As String = If(nbPratsObj IsNot Nothing, nbPratsObj.ToString(), "0")
-                    panelStats.Controls.Add(CaseStat(panelStats, "Praticiens visités :", nbPrats, statsY))
+                    panelStats.Controls.Add(CaseStat(panelStats, "Praticiens visitésss :", nbPrats, statsY))
                     statsY += 45
                 End Using
 
@@ -93,9 +168,9 @@ Public Class StatsTab
                 "SELECT M.LIBELLE FROM GSBAdmin.MOTIF M JOIN GSBAdmin.CR C ON M.LIBELLE = C.LIBELLE " &
                 "WHERE C.IDUSER=? AND C.DATEVISITE BETWEEN ? AND ?"
                 If praticienId > 0 Then sqlMotif &= " AND C.IDPRAT = ?"
-                sqlMotif &= " GROUP BY M.LIBELLE ORDER BY COUNT(*) DESC FETCH FIRST 1 ROWS ONLY"
+                sqlMotif &= " GROUP BY M.LIBELLE ORDER BY COUNT(C.IDCR) DESC FETCH FIRST 1 ROWS ONLY"
                 Using cmdMotif As New OdbcCommand(sqlMotif, conn)
-                    cmdMotif.Parameters.Add("p1", OdbcType.Int).Value = _userId
+                    cmdMotif.Parameters.Add("p1", OdbcType.Int).Value = _currentUserId
                     cmdMotif.Parameters.Add("p2", OdbcType.Date).Value = dtDebut.Value.Date
                     cmdMotif.Parameters.Add("p3", OdbcType.Date).Value = dtFin.Value.Date
                     If praticienId > 0 Then cmdMotif.Parameters.Add("p4", OdbcType.Int).Value = praticienId
@@ -237,7 +312,7 @@ Public Class StatsTab
                     "WHERE PF.IDUSER = ? ORDER BY P.IDPRAT"
 
                 Using cmd As New OdbcCommand(query, conn)
-                    cmd.Parameters.Add("IDUSER", OdbcType.Int).Value = _userId
+                    cmd.Parameters.Add("IDUSER", OdbcType.Int).Value = _currentUserId
 
                     Using reader As OdbcDataReader = cmd.ExecuteReader()
                         While reader.Read()

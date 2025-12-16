@@ -27,8 +27,8 @@ Public Class LoginForm
         txtPass.ForeColor = Color.Black
 
         ' Valeurs par défaut pour tests
-        txtUser.Text = "DJean"
-        txtPass.Text = "pass123"
+        txtUser.Text = "MClaire"
+        txtPass.Text = "pwd456"
 
         ' Chaîne de connexion ODBC
         connString = "DSN=ORA14;Uid=GSBApp;Pwd=Iroise29;"

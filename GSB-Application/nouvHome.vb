@@ -16,10 +16,10 @@ Public Class nouvHome
 
         ' Définir la liste des onglets et les rôles autorisés + usine de création de UserControl
         Dim tabs As New Dictionary(Of String, (roles As String, factory As Func(Of UserControl))) From {
-            {"Créer un C.R.", ("Visiteur,Délégué", Function() CreateControlSafe(Function() New CreerCRTab(UserId)))},
-            {"Mes statistiques", ("Visiteur,Délégué", Function() CreateControlSafe(Function() New StatsTab(UserId)))},
-            {"Mes C.R.", ("Visiteur,Délégué", Function() CreateControlSafe(Function() New MesCRTab(UserId)))},
-            {"Stats. régionales", ("Délégué", Function() CreateControlSafe(Function() New StatsRegTab()))},
+            {"Créer un C.R.", ("Visiteur,Delegue", Function() CreateControlSafe(Function() New CreerCRTab(UserId)))},
+            {"Mes statistiques", ("Visiteur,Delegue", Function() CreateControlSafe(Function() New StatsTab(UserId)))},
+            {"Mes C.R.", ("Visiteur,Delegue", Function() CreateControlSafe(Function() New MesCRTab(UserId)))},
+            {"Stats. régionales", ("Delegue", Function() CreateControlSafe(Function() New StatsRegTab(UserId)))},
             {"Stats. de secteur", ("Responsable", Function() CreateControlSafe(Function() New StatsSecteurTab()))}
         }
 
@@ -76,7 +76,25 @@ Public Class nouvHome
         End If
     End Sub
 
-    Private Sub TabControl1_SelectedIndexChanged(sender As Object, e As EventArgs) Handles TabControl1.SelectedIndexChanged
-        ' Événement disponible si besoin
+    Private Sub TabControl1_SelectedIndexChanged(
+    sender As Object,
+    e As EventArgs
+) Handles TabControl1.SelectedIndexChanged
+
+        Dim tc As TabControl = CType(sender, TabControl)
+        Dim tab As TabPage = tc.SelectedTab
+
+        For Each ctrl As Control In tab.Controls
+            If TypeOf ctrl Is StatsTab Then
+                Dim st As StatsTab = CType(ctrl, StatsTab)
+
+                ' 🔁 reset systématique sur l'utilisateur connecté
+                st.LoadStatsForUser(UserId)
+
+                Exit Sub
+            End If
+        Next
     End Sub
+
+
 End Class
