@@ -73,6 +73,10 @@
     <Import Include="System.Threading.Tasks" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CompteRenduData.vb" />
+    <Compile Include="CompteRenduTab.vb">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="connexion.Designer.vb">
       <DependentUpon>connexion.vb</DependentUpon>
     </Compile>
