@@ -122,6 +122,10 @@
     <Import Include="System.Threading.Tasks" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CompteRenduData.vb" />
+    <Compile Include="CompteRenduTab.vb">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="CreerCRTab.vb">
       <SubType>UserControl</SubType>
     </Compile>
