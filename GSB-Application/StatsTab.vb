@@ -8,7 +8,7 @@ Public Class StatsTab
     Inherits UserControl
 
     Private ReadOnly _userId As Integer
-    Private ReadOnly connString As String = "DSN=ORA14;Uid=GSBApp;Pwd=Iroise29;"
+    ' Use shared DbManager.Connection
 
     Private tblMain As TableLayoutPanel
     Private panelFiltres As GroupBox
@@ -32,6 +32,7 @@ Public Class StatsTab
     Public Sub New(userId As Integer)
         _userId = userId
         _defaultUserId = userId ' <-- on stocke l'utilisateur par défaut
+        _currentUserId = userId
         Me.Dock = DockStyle.Fill
         InitializeUI()
         LoadPraticiens()
@@ -59,22 +60,18 @@ Public Class StatsTab
     Private Sub LoadUserInfo(userId As Integer)
         panelInfos.Controls.Clear()
         Try
-            Using conn As New OdbcConnection(connString)
-                conn.Open()
-                Dim sql As String = "SELECT NOMUSER, PRENOMUSER, EMAILUSER FROM GSBAdmin.UTILISATEUR WHERE IDUSER=?"
-                Using cmd As New OdbcCommand(sql, conn)
-                    cmd.Parameters.Add("p1", OdbcType.Int).Value = _currentUserId
-
-                    Using reader = cmd.ExecuteReader()
-                        If reader.Read() Then
-                            Dim yPos As Integer = 20
-                            panelInfos.Controls.Add(CaseStat(panelInfos, "Nom :", reader("NOMUSER").ToString(), yPos))
-                            yPos += 35
-                            panelInfos.Controls.Add(CaseStat(panelInfos, "Prénom :", reader("PRENOMUSER").ToString(), yPos))
-                            yPos += 35
-                            panelInfos.Controls.Add(CaseStat(panelInfos, "Email :", reader("EMAILUSER").ToString(), yPos))
-                        End If
-                    End Using
+            Dim sql As String = "SELECT NOMUSER, PRENOMUSER, EMAILUSER FROM GSBAdmin.UTILISATEUR WHERE IDUSER=?"
+            Using cmd As New OdbcCommand(sql, DbManager.Connection)
+                cmd.Parameters.Add("p1", OdbcType.Int).Value = userId
+                Using reader = cmd.ExecuteReader()
+                    If reader.Read() Then
+                        Dim yPos As Integer = 20
+                        panelInfos.Controls.Add(CaseStat(panelInfos, "Nom :", reader("NOMUSER").ToString(), yPos))
+                        yPos += 35
+                        panelInfos.Controls.Add(CaseStat(panelInfos, "Prénom :", reader("PRENOMUSER").ToString(), yPos))
+                        yPos += 35
+                        panelInfos.Controls.Add(CaseStat(panelInfos, "Email :", reader("EMAILUSER").ToString(), yPos))
+                    End If
                 End Using
             End Using
         Catch ex As Exception
@@ -85,21 +82,18 @@ Public Class StatsTab
     Private Sub LoadPortefeuille(userId As Integer)
         lbPortefeuille.Items.Clear()
         Try
-            Using conn As New OdbcConnection(connString)
-                conn.Open()
-                Dim sql As String = "SELECT P.IDPRAT, NVL(P.NOMPRAT,''), NVL(P.PRENOMPRAT,''), NVL(P.SPECIALITEPRAT,'') " &
-                                "FROM GSBAdmin.PRATICIEN P JOIN GSBAdmin.PORTEFEUILLE PF ON PF.IDPRAT = P.IDPRAT " &
-                                "WHERE PF.IDUSER=? ORDER BY P.IDPRAT"
-                Using cmd As New OdbcCommand(sql, conn)
-                    cmd.Parameters.Add("p1", OdbcType.Int).Value = _currentUserId
-                    Using reader = cmd.ExecuteReader()
-                        While reader.Read()
-                            Dim label = If(String.IsNullOrWhiteSpace(reader("NOMPRAT").ToString()) AndAlso String.IsNullOrWhiteSpace(reader("PRENOMPRAT").ToString()),
-                                        $"ID {reader("IDPRAT")} | {reader("SPECIALITEPRAT")}",
-                                        $"{reader("NOMPRAT")} {reader("PRENOMPRAT")} | {reader("SPECIALITEPRAT")}")
-                            lbPortefeuille.Items.Add(label)
-                        End While
-                    End Using
+            Dim sql As String = "SELECT P.IDPRAT, NVL(P.NOMPRAT,''), NVL(P.PRENOMPRAT,''), NVL(P.SPECIALITEPRAT,'') " &
+                            "FROM GSBAdmin.PRATICIEN P JOIN GSBAdmin.PORTEFEUILLE PF ON PF.IDPRAT = P.IDPRAT " &
+                            "WHERE PF.IDUSER=? ORDER BY P.IDPRAT"
+            Using cmd As New OdbcCommand(sql, DbManager.Connection)
+                cmd.Parameters.Add("p1", OdbcType.Int).Value = userId
+                Using reader = cmd.ExecuteReader()
+                    While reader.Read()
+                        Dim label = If(String.IsNullOrWhiteSpace(reader("NOMPRAT").ToString()) AndAlso String.IsNullOrWhiteSpace(reader("PRENOMPRAT").ToString()),
+                                    $"ID {reader("IDPRAT")} | {reader("SPECIALITEPRAT")}",
+                                    $"{reader("NOMPRAT")} {reader("PRENOMPRAT")} | {reader("SPECIALITEPRAT")}")
+                        lbPortefeuille.Items.Add(label)
+                    End While
                 End Using
             End Using
         Catch ex As Exception
@@ -113,75 +107,71 @@ Public Class StatsTab
         Dim statsY As Integer = 30
 
         Try
-            Using conn As New OdbcConnection(connString)
-                conn.Open()
+            ' 1) Nombre de visites
+            Dim sqlVisites As String = "SELECT COUNT(*) FROM GSBAdmin.CR WHERE IDUSER=? AND DATEVISITE BETWEEN ? AND ?"
+            If praticienId > 0 Then sqlVisites &= " AND IDPRAT = ?"
+            Using cmdVisites As New OdbcCommand(sqlVisites, DbManager.Connection)
+                cmdVisites.Parameters.Add("p1", OdbcType.Int).Value = _currentUserId
+                cmdVisites.Parameters.Add("p2", OdbcType.Date).Value = dtDebut.Value.Date
+                cmdVisites.Parameters.Add("p3", OdbcType.Date).Value = dtFin.Value.Date
+                If praticienId > 0 Then cmdVisites.Parameters.Add("p4", OdbcType.Int).Value = praticienId
 
-                ' 1) Nombre de visites
-                Dim sqlVisites As String = "SELECT COUNT(*) FROM GSBAdmin.CR WHERE IDUSER=? AND DATEVISITE BETWEEN ? AND ?"
-                If praticienId > 0 Then sqlVisites &= " AND IDPRAT = ?"
-                Using cmdVisites As New OdbcCommand(sqlVisites, conn)
-                    cmdVisites.Parameters.Add("p1", OdbcType.Int).Value = _currentUserId
-                    cmdVisites.Parameters.Add("p2", OdbcType.Date).Value = dtDebut.Value.Date
-                    cmdVisites.Parameters.Add("p3", OdbcType.Date).Value = dtFin.Value.Date
-                    If praticienId > 0 Then cmdVisites.Parameters.Add("p4", OdbcType.Int).Value = praticienId
+                Dim nbVisitesObj As Object = cmdVisites.ExecuteScalar()
+                Dim nbVisites As String = If(nbVisitesObj IsNot Nothing, nbVisitesObj.ToString(), "0")
+                panelStats.Controls.Add(CaseStat(panelStats, "Nombre de visites :", nbVisites, statsY))
+                statsY += 45
+            End Using
 
-                    Dim nbVisitesObj As Object = cmdVisites.ExecuteScalar()
-                    Dim nbVisites As String = If(nbVisitesObj IsNot Nothing, nbVisitesObj.ToString(), "0")
-                    panelStats.Controls.Add(CaseStat(panelStats, "Nombre de visites :", nbVisites, statsY))
-                    statsY += 45
-                End Using
-
-                ' 2) Échantillons donnés
-                Dim sqlEchant As String =
+            ' 2) Échantillons donnés
+            Dim sqlEchant As String =
                 "SELECT NVL(SUM(D.NOMBREECHANTILLONS),0) FROM GSBAdmin.DISTRIBUTION D JOIN GSBAdmin.CR C ON D.IDCR=C.IDCR " &
                 "WHERE C.IDUSER=? AND C.DATEVISITE BETWEEN ? AND ?"
-                If praticienId > 0 Then sqlEchant &= " AND C.IDPRAT = ?"
-                Using cmdEchant As New OdbcCommand(sqlEchant, conn)
-                    cmdEchant.Parameters.Add("p1", OdbcType.Int).Value = _currentUserId
-                    cmdEchant.Parameters.Add("p2", OdbcType.Date).Value = dtDebut.Value.Date
-                    cmdEchant.Parameters.Add("p3", OdbcType.Date).Value = dtFin.Value.Date
-                    If praticienId > 0 Then cmdEchant.Parameters.Add("p4", OdbcType.Int).Value = praticienId
+            If praticienId > 0 Then sqlEchant &= " AND C.IDPRAT = ?"
+            Using cmdEchant As New OdbcCommand(sqlEchant, DbManager.Connection)
+                cmdEchant.Parameters.Add("p1", OdbcType.Int).Value = _currentUserId
+                cmdEchant.Parameters.Add("p2", OdbcType.Date).Value = dtDebut.Value.Date
+                cmdEchant.Parameters.Add("p3", OdbcType.Date).Value = dtFin.Value.Date
+                If praticienId > 0 Then cmdEchant.Parameters.Add("p4", OdbcType.Int).Value = praticienId
 
-                    Dim nbEchantillonsObj As Object = cmdEchant.ExecuteScalar()
-                    Dim nbEchantillons As String = If(nbEchantillonsObj IsNot Nothing, nbEchantillonsObj.ToString(), "0")
-                    panelStats.Controls.Add(CaseStat(panelStats, "Échantillons donnés :", nbEchantillons, statsY))
-                    statsY += 45
-                End Using
+                Dim nbEchantillonsObj As Object = cmdEchant.ExecuteScalar()
+                Dim nbEchantillons As String = If(nbEchantillonsObj IsNot Nothing, nbEchantillonsObj.ToString(), "0")
+                panelStats.Controls.Add(CaseStat(panelStats, "Échantillons donnés :", nbEchantillons, statsY))
+                statsY += 45
+            End Using
 
-                ' 3) Praticiens visités (distincts)
-                Dim sqlPrats As String = "SELECT COUNT(DISTINCT IDPRAT) FROM GSBAdmin.CR WHERE IDUSER=? AND DATEVISITE BETWEEN ? AND ?"
-                If praticienId > 0 Then sqlPrats &= " AND IDPRAT = ?"
-                Using cmdPrats As New OdbcCommand(sqlPrats, conn)
-                    cmdPrats.Parameters.Add("p1", OdbcType.Int).Value = _currentUserId
-                    cmdPrats.Parameters.Add("p2", OdbcType.Date).Value = dtDebut.Value.Date
-                    cmdPrats.Parameters.Add("p3", OdbcType.Date).Value = dtFin.Value.Date
-                    If praticienId > 0 Then cmdPrats.Parameters.Add("p4", OdbcType.Int).Value = praticienId
+            ' 3) Praticiens visités (distincts)
+            Dim sqlPrats As String = "SELECT COUNT(DISTINCT IDPRAT) FROM GSBAdmin.CR WHERE IDUSER=? AND DATEVISITE BETWEEN ? AND ?"
+            If praticienId > 0 Then sqlPrats &= " AND IDPRAT = ?"
+            Using cmdPrats As New OdbcCommand(sqlPrats, DbManager.Connection)
+                cmdPrats.Parameters.Add("p1", OdbcType.Int).Value = _currentUserId
+                cmdPrats.Parameters.Add("p2", OdbcType.Date).Value = dtDebut.Value.Date
+                cmdPrats.Parameters.Add("p3", OdbcType.Date).Value = dtFin.Value.Date
+                If praticienId > 0 Then cmdPrats.Parameters.Add("p4", OdbcType.Int).Value = praticienId
 
-                    Dim nbPratsObj As Object = cmdPrats.ExecuteScalar()
-                    Dim nbPrats As String = If(nbPratsObj IsNot Nothing, nbPratsObj.ToString(), "0")
-                    panelStats.Controls.Add(CaseStat(panelStats, "Praticiens visitésss :", nbPrats, statsY))
-                    statsY += 45
-                End Using
+                Dim nbPratsObj As Object = cmdPrats.ExecuteScalar()
+                Dim nbPrats As String = If(nbPratsObj IsNot Nothing, nbPratsObj.ToString(), "0")
+                panelStats.Controls.Add(CaseStat(panelStats, "Praticiens visités :", nbPrats, statsY))
+                statsY += 45
+            End Using
 
-                ' 4) Motif le plus utilisé
-                Dim sqlMotif As String =
+            ' 4) Motif le plus utilisé
+            Dim sqlMotif As String =
                 "SELECT M.LIBELLE FROM GSBAdmin.MOTIF M JOIN GSBAdmin.CR C ON M.LIBELLE = C.LIBELLE " &
                 "WHERE C.IDUSER=? AND C.DATEVISITE BETWEEN ? AND ?"
-                If praticienId > 0 Then sqlMotif &= " AND C.IDPRAT = ?"
-                sqlMotif &= " GROUP BY M.LIBELLE ORDER BY COUNT(C.IDCR) DESC FETCH FIRST 1 ROWS ONLY"
-                Using cmdMotif As New OdbcCommand(sqlMotif, conn)
-                    cmdMotif.Parameters.Add("p1", OdbcType.Int).Value = _currentUserId
-                    cmdMotif.Parameters.Add("p2", OdbcType.Date).Value = dtDebut.Value.Date
-                    cmdMotif.Parameters.Add("p3", OdbcType.Date).Value = dtFin.Value.Date
-                    If praticienId > 0 Then cmdMotif.Parameters.Add("p4", OdbcType.Int).Value = praticienId
+            If praticienId > 0 Then sqlMotif &= " AND C.IDPRAT = ?"
+            sqlMotif &= " GROUP BY M.LIBELLE ORDER BY COUNT(C.IDCR) DESC FETCH FIRST 1 ROWS ONLY"
+            Using cmdMotif As New OdbcCommand(sqlMotif, DbManager.Connection)
+                cmdMotif.Parameters.Add("p1", OdbcType.Int).Value = _currentUserId
+                cmdMotif.Parameters.Add("p2", OdbcType.Date).Value = dtDebut.Value.Date
+                cmdMotif.Parameters.Add("p3", OdbcType.Date).Value = dtFin.Value.Date
+                If praticienId > 0 Then cmdMotif.Parameters.Add("p4", OdbcType.Int).Value = praticienId
 
-                    Dim topMotifObj As Object = cmdMotif.ExecuteScalar()
-                    Dim motifTexte As String = If(topMotifObj IsNot Nothing, topMotifObj.ToString(), "-")
-                    panelStats.Controls.Add(CaseStat(panelStats, "Motif le plus utilisé :", motifTexte, statsY))
-                    statsY += 45
-                End Using
-
+                Dim topMotifObj As Object = cmdMotif.ExecuteScalar()
+                Dim motifTexte As String = If(topMotifObj IsNot Nothing, topMotifObj.ToString(), "-")
+                panelStats.Controls.Add(CaseStat(panelStats, "Motif le plus utilisé :", motifTexte, statsY))
+                statsY += 45
             End Using
+
         Catch ex As Exception
             WriteLog("ConstruireStatsDynamiques error: " & ex.Message)
             MessageBox.Show("Erreur ODBC : " & ex.Message, "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error)
@@ -302,37 +292,31 @@ Public Class StatsTab
         lbPortefeuille.Items.Clear()
 
         Try
-            Using conn As New OdbcConnection(connString)
-                conn.Open()
+            Dim query As String =
+                "SELECT P.IDPRAT, NVL(P.NOMPRAT,'') AS NOMPRAT, NVL(P.PRENOMPRAT,'') AS PRENOMPRAT, NVL(P.SPECIALITEPRAT,'') AS SPECIALITE " &
+                "FROM GSBAdmin.PRATICIEN P " &
+                "JOIN GSBAdmin.PORTEFEUILLE PF ON PF.IDPRAT = P.IDPRAT " &
+                "WHERE PF.IDUSER = ? ORDER BY P.IDPRAT"
 
-                Dim query As String =
-                    "SELECT P.IDPRAT, NVL(P.NOMPRAT,'') AS NOMPRAT, NVL(P.PRENOMPRAT,'') AS PRENOMPRAT, NVL(P.SPECIALITEPRAT,'') AS SPECIALITE " &
-                    "FROM GSBAdmin.PRATICIEN P " &
-                    "JOIN GSBAdmin.PORTEFEUILLE PF ON PF.IDPRAT = P.IDPRAT " &
-                    "WHERE PF.IDUSER = ? ORDER BY P.IDPRAT"
+            Using cmd As New OdbcCommand(query, DbManager.Connection)
+                cmd.Parameters.Add("IDUSER", OdbcType.Int).Value = _currentUserId
 
-                Using cmd As New OdbcCommand(query, conn)
-                    cmd.Parameters.Add("IDUSER", OdbcType.Int).Value = _currentUserId
+                Using reader As OdbcDataReader = cmd.ExecuteReader()
+                    While reader.Read()
+                        Dim id As Integer = CInt(reader("IDPRAT"))
+                        Dim nom As String = reader("NOMPRAT").ToString()
+                        Dim prenom As String = reader("PRENOMPRAT").ToString()
+                        Dim spec As String = reader("SPECIALITE").ToString()
 
-                    Using reader As OdbcDataReader = cmd.ExecuteReader()
-                        While reader.Read()
-                            Dim id As Integer = CInt(reader("IDPRAT"))
-                            Dim nom As String = reader("NOMPRAT").ToString()
-                            Dim prenom As String = reader("PRENOMPRAT").ToString()
-                            Dim spec As String = reader("SPECIALITE").ToString()
+                        Dim label As String = If(nom.Trim() = "" AndAlso prenom.Trim() = "",
+                                                  $"ID {id} | {spec}",
+                                                  $"{nom} {prenom} | {spec}")
 
-                            Dim label As String =
-                                If(nom.Trim() = "" AndAlso prenom.Trim() = "",
-                                   $"ID {id} | {spec}",
-                                   $"{nom} {prenom} | {spec}")
-
-                            lbPortefeuille.Items.Add(label)
-                            practList.Add(New KeyValuePair(Of Integer, String)(id, label))
-                        End While
-                    End Using
+                        lbPortefeuille.Items.Add(label)
+                        practList.Add(New KeyValuePair(Of Integer, String)(id, label))
+                    End While
                 End Using
             End Using
-
         Catch ex As Exception
             WriteLog("LoadPraticiens: " & ex.Message)
         End Try

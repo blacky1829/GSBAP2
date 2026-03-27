@@ -1,5 +1,6 @@
 ﻿Imports System
 Imports System.Data.Odbc
+Imports System.Data
 Imports System.Drawing
 Imports System.Windows.Forms
 
@@ -9,7 +10,7 @@ Public Class StatsRegTab
     ' ---------- Champs ----------
     Private ReadOnly _regionId As Integer
     Private _selectedVisitorId As Integer = -1
-    Private ReadOnly connString As String = "DSN=ORA14;Uid=GSBApp;Pwd=Iroise29;"
+    ' Use shared connection from DbManager
 
     ' ---------- Controls ----------
     Private panelFilters As GroupBox
@@ -131,35 +132,37 @@ Public Class StatsRegTab
         lstVisitors.Items.Clear()
 
         Try
-            Using conn As New OdbcConnection(connString)
-                conn.Open()
+            ' REGION is linked to UTILISATEUR by LIBELLE (string).
+            ' Allow filtering by either region ID or region libelle: try both to be safe.
+            Dim sql As String =
+"SELECT U.IDUSER, U.NOMUSER || ' ' || U.PRENOMUSER AS FULLNAME " &
+"FROM gsbAdmin.UTILISATEUR U " &
+"JOIN gsbAdmin.VISITEUR V ON V.IDUSER = U.IDUSER " &
+"JOIN gsbAdmin.REGION R ON R.LIBELLE = U.LIBELLE " &
+"WHERE R.ID = ? OR R.LIBELLE = ? " &
+"ORDER BY U.NOMUSER, U.PRENOMUSER"
 
-                Dim sql As String =
-    "SELECT U.IDUSER, U.NOMUSER || ' ' || U.PRENOMUSER AS FULLNAME " &
-    "FROM gsbAdmin.UTILISATEUR U " &
-    "JOIN gsbAdmin.VISITEUR V ON V.IDUSER = U.IDUSER " &
-    "JOIN gsbAdmin.REGION R ON R.LIBELLE = U.LIBELLE " &
-    "WHERE R.ID = ? " &
-    "ORDER BY U.NOMUSER, U.PRENOMUSER"
+            Using cmd As New OdbcCommand(sql, DbManager.Connection)
+                ' param 1 = region id (int) - will be ignored if libelle match used
+                cmd.Parameters.Add(New OdbcParameter With {
+                    .OdbcType = OdbcType.Int,
+                    .Value = _regionId
+                })
+                ' param 2 = region libelle (string) - in case caller provided libelle instead of id
+                cmd.Parameters.Add(New OdbcParameter With {
+                    .OdbcType = OdbcType.VarChar,
+                    .Value = _regionId.ToString()
+                })
 
-
-                Using cmd As New OdbcCommand(sql, conn)
-                    cmd.Parameters.Add(New OdbcParameter With {
-    .OdbcType = OdbcType.Int,
-    .Value = _regionId
-})
-
-
-                    Using rd = cmd.ExecuteReader()
-                        While rd.Read()
-                            lstVisitors.Items.Add(
-                                New KeyValuePair(Of Integer, String)(
-                                    CInt(rd("IDUSER")),
-                                    rd("FULLNAME").ToString()
-                                )
+                Using rd = cmd.ExecuteReader()
+                    While rd.Read()
+                        lstVisitors.Items.Add(
+                            New KeyValuePair(Of Integer, String)(
+                                CInt(rd("IDUSER")),
+                                rd("FULLNAME").ToString()
                             )
-                        End While
-                    End Using
+                        )
+                    End While
                 End Using
             End Using
         Catch ex As Exception
@@ -173,29 +176,25 @@ Public Class StatsRegTab
         flowMetrics.Controls.Clear()
 
         Try
-            Using conn As New OdbcConnection(connString)
-                conn.Open()
+            Dim userFilter As String = If(_selectedVisitorId > 0, " AND C.IDUSER = ? ", "")
 
-                Dim userFilter As String = If(_selectedVisitorId > 0, " AND C.IDUSER = ? ", "")
+            AddMetric(
+                "Nombre de visites",
+                "SELECT COUNT(*) FROM gsbAdmin.CR C " &
+                "WHERE C.DATEVISITE BETWEEN ? AND ?" & userFilter)
 
-                AddMetric(conn,
-                    "Nombre de visites",
-                    "SELECT COUNT(*) FROM gsbAdmin.CR C " &
-                    "WHERE C.DATEVISITE BETWEEN ? AND ?" & userFilter)
+            AddMetric(
+                "Échantillons distribués",
+                "SELECT NVL(SUM(D.NOMBREECHANTILLONS),0) " &
+                "FROM gsbAdmin.DISTRIBUTION D " &
+                "JOIN gsbAdmin.CR C ON C.IDCR = D.IDCR " &
+                "WHERE C.DATEVISITE BETWEEN ? AND ?" & userFilter)
 
-                AddMetric(conn,
-                    "Échantillons distribués",
-                    "SELECT NVL(SUM(D.NOMBREECHANTILLONS),0) " &
-                    "FROM gsbAdmin.DISTRIBUTION D " &
-                    "JOIN gsbAdmin.CR C ON C.IDCR = D.IDCR " &
-                    "WHERE C.DATEVISITE BETWEEN ? AND ?" & userFilter)
+            AddMetric(
+                "Praticiens visités",
+                "SELECT COUNT(DISTINCT C.IDPRAT) FROM gsbAdmin.CR C " &
+                "WHERE C.DATEVISITE BETWEEN ? AND ?" & userFilter)
 
-                AddMetric(conn,
-                    "Praticiens visités",
-                    "SELECT COUNT(DISTINCT C.IDPRAT) FROM gsbAdmin.CR C " &
-                    "WHERE C.DATEVISITE BETWEEN ? AND ?" & userFilter)
-
-            End Using
         Catch ex As Exception
             MessageBox.Show("Erreur statistiques : " & ex.Message,
                             "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error)
@@ -205,30 +204,29 @@ Public Class StatsRegTab
     End Sub
 
     ' ---------- Metric helper ----------
-    Private Sub AddMetric(conn As OdbcConnection, title As String, sql As String)
-        Using cmd As New OdbcCommand(sql, conn)
+    Private Sub AddMetric(title As String, sql As String)
+        Using cmd As New OdbcCommand(sql, DbManager.Connection)
+            ' dates (toujours présents)
             cmd.Parameters.Add(New OdbcParameter With {
-    .OdbcType = OdbcType.Date,
-    .Value = dtStart.Value.Date
-})
+                .OdbcType = OdbcType.Date,
+                .Value = dtStart.Value.Date
+            })
 
             cmd.Parameters.Add(New OdbcParameter With {
-    .OdbcType = OdbcType.Date,
-    .Value = dtEnd.Value.Date
-})
+                .OdbcType = OdbcType.Date,
+                .Value = dtEnd.Value.Date
+            })
 
+            ' visitor filter param (optionnel, doit être ajouté last)
             If _selectedVisitorId > 0 Then
                 cmd.Parameters.Add(New OdbcParameter With {
-        .OdbcType = OdbcType.Int,
-        .Value = _selectedVisitorId
-    })
+                    .OdbcType = OdbcType.Int,
+                    .Value = _selectedVisitorId
+                })
             End If
 
-
             Dim result = cmd.ExecuteScalar()
-            Dim value As String =
-                If(result IsNot Nothing AndAlso result IsNot DBNull.Value,
-                   result.ToString(), "0")
+            Dim value As String = If(result IsNot Nothing AndAlso result IsNot DBNull.Value, result.ToString(), "0")
 
             flowMetrics.Controls.Add(CreateMetricCard(title, value))
         End Using

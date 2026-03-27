@@ -125,6 +125,7 @@
     <Compile Include="CreerCRTab.vb">
       <SubType>UserControl</SubType>
     </Compile>
+    <Compile Include="DbManager.vb" />
     <Compile Include="LoginForm.Designer.vb">
       <DependentUpon>LoginForm.vb</DependentUpon>
     </Compile>

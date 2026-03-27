@@ -6,7 +6,7 @@ Public Class MesCRTab
 
     Private _userId As Integer
     Private WithEvents dgv As DataGridView
-    Private ReadOnly connString As String = "DSN=ORA14;Uid=GSBAdmin;Pwd=Iroise29;"
+    ' Use shared DbManager.Connection
 
     ' ÉVÉNEMENT : Permet au MainForm de savoir qu'on a cliqué sur Modifier
     Public Event OnEditRequested(idCr As Integer)
@@ -43,17 +43,14 @@ Public Class MesCRTab
         Dim query As String = "SELECT c.IDCR, c.DATEVISITE, p.NOMPRAT || ' ' || p.PRENOMPRAT AS PRATICIEN, " &
                              "c.LIBELLE AS MOTIF, c.COEFCONFIANCE " &
                              "FROM GSBAdmin.CR c " &
-                             "JOIN PRATICIEN p ON c.IDPRAT = p.IDPRAT " &
+                             "JOIN GSBAdmin.PRATICIEN p ON c.IDPRAT = p.IDPRAT " &
                              "WHERE c.IDUSER = ? ORDER BY c.DATEVISITE DESC"
         Try
-            Using conn As New OdbcConnection(connString)
-                conn.Open()
-                Using cmd As New OdbcCommand(query, conn)
-                    cmd.Parameters.Add("IDUSER", OdbcType.Int).Value = _userId
-                    Dim dt As New DataTable()
-                    dt.Load(cmd.ExecuteReader())
-                    dgv.DataSource = dt
-                End Using
+            Using cmd As New OdbcCommand(query, DbManager.Connection)
+                cmd.Parameters.Add("IDUSER", OdbcType.Int).Value = _userId
+                Dim dt As New DataTable()
+                dt.Load(cmd.ExecuteReader())
+                dgv.DataSource = dt
             End Using
             ' Cacher l'ID technique
             If dgv.Columns.Contains("IDCR") Then dgv.Columns("IDCR").Visible = False

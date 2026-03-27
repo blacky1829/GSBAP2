@@ -7,7 +7,7 @@ Public Class CreerCRTab
     Inherits UserControl
 
     Private ReadOnly _currentUserId As Integer
-    Private ReadOnly connString As String = "DSN=ORA14;Uid=GSBAdmin;Pwd=Iroise29;"
+    ' Use shared DbManager.Connection
     Private _editingCrId As Integer? = Nothing
 
     Private WithEvents TBversion As TextBox
@@ -46,7 +46,7 @@ Public Class CreerCRTab
         currentTop += 40
 
         Me.Controls.Add(New Label With {.Text = "Confiance (1-5) :", .Location = New Point(20, currentTop), .AutoSize = True})
-        NudConfiance = New NumericUpDown With {.Location = New Point(120, currentTop - 3), .Minimum = 1, .Maximum = 5, .Value = 3}
+        NudConfiance = New NumericUpDown With {.Location = New Point(120, currentTop - 3), .Minimum = 0, .Maximum = 5, .Value = 3}
         Me.Controls.Add(NudConfiance)
         currentTop += 40
 
@@ -73,30 +73,26 @@ Public Class CreerCRTab
 
     Private Sub LoadData()
         Try
-            Using conn As New OdbcConnection(connString)
-                conn.Open()
+            Dim cmdP As New OdbcCommand("SELECT IDPRAT, (NOMPRAT || ' ' || PRENOMPRAT) AS NOM_COMPLET FROM PRATICIEN", DbManager.Connection)
+            Dim dtP As New DataTable()
+            dtP.Load(cmdP.ExecuteReader())
+            CBPraticien.DisplayMember = "NOM_COMPLET"
+            CBPraticien.ValueMember = "IDPRAT"
+            CBPraticien.DataSource = dtP
 
-                Dim cmdP As New OdbcCommand("SELECT IDPRAT, (NOMPRAT || ' ' || PRENOMPRAT) AS NOM_COMPLET FROM PRATICIEN", conn)
-                Dim dtP As New DataTable()
-                dtP.Load(cmdP.ExecuteReader())
-                CBPraticien.DisplayMember = "NOM_COMPLET"
-                CBPraticien.ValueMember = "IDPRAT"
-                CBPraticien.DataSource = dtP
+            Dim cmdM As New OdbcCommand("SELECT MOTIF, LIBELLE FROM MOTIF", DbManager.Connection)
+            Dim dtM As New DataTable()
+            dtM.Load(cmdM.ExecuteReader())
+            CBMotif.DisplayMember = "LIBELLE"
+            CBMotif.ValueMember = "MOTIF"
+            CBMotif.DataSource = dtM
 
-                Dim cmdM As New OdbcCommand("SELECT MOTIF, LIBELLE FROM MOTIF", conn)
-                Dim dtM As New DataTable()
-                dtM.Load(cmdM.ExecuteReader())
-                CBMotif.DisplayMember = "LIBELLE"
-                CBMotif.ValueMember = "MOTIF"
-                CBMotif.DataSource = dtM
-
-                CLBProduits.Items.Clear()
-                Dim cmdProd As New OdbcCommand("SELECT NOMPROD FROM PRODUIT", conn)
-                Using reader = cmdProd.ExecuteReader()
-                    While reader.Read()
-                        CLBProduits.Items.Add(reader("NOMPROD").ToString())
-                    End While
-                End Using
+            CLBProduits.Items.Clear()
+            Dim cmdProd As New OdbcCommand("SELECT NOMPROD FROM PRODUIT", DbManager.Connection)
+            Using reader = cmdProd.ExecuteReader()
+                While reader.Read()
+                    CLBProduits.Items.Add(reader("NOMPROD").ToString())
+                End While
             End Using
         Catch ex As Exception
             MessageBox.Show("Erreur lors du chargement : " & ex.Message)
@@ -109,20 +105,17 @@ Public Class CreerCRTab
         bValider.BackColor = Color.Orange
 
         Try
-            Using conn As New OdbcConnection(connString)
-                conn.Open()
-                Dim query As String = "SELECT IDPRAT, LIBELLE, DATEVISITE, COEFCONFIANCE, BILANCR FROM GSBAdmin.CR WHERE IDCR = ?"
-                Using cmd As New OdbcCommand(query, conn)
-                    cmd.Parameters.Add("ID", OdbcType.Int).Value = idCr
-                    Using reader = cmd.ExecuteReader()
-                        If reader.Read() Then
-                            CBPraticien.SelectedValue = reader("IDPRAT")
-                            CBMotif.Text = reader("LIBELLE").ToString()
-                            DTPVisite.Value = CDate(reader("DATEVISITE"))
-                            NudConfiance.Value = CDec(reader("COEFCONFIANCE"))
-                            RTBBilan.Text = reader("BILANCR").ToString()
-                        End If
-                    End Using
+            Dim query As String = "SELECT IDPRAT, LIBELLE, DATEVISITE, COEFCONFIANCE, BILANCR FROM GSBAdmin.CR WHERE IDCR = ?"
+            Using cmd As New OdbcCommand(query, DbManager.Connection)
+                cmd.Parameters.Add("ID", OdbcType.Int).Value = idCr
+                Using reader = cmd.ExecuteReader()
+                    If reader.Read() Then
+                        CBPraticien.SelectedValue = reader("IDPRAT")
+                        CBMotif.Text = reader("LIBELLE").ToString()
+                        DTPVisite.Value = CDate(reader("DATEVISITE"))
+                        NudConfiance.Value = CDec(reader("COEFCONFIANCE"))
+                        RTBBilan.Text = reader("BILANCR").ToString()
+                    End If
                 End Using
             End Using
         Catch ex As Exception
@@ -146,30 +139,27 @@ Public Class CreerCRTab
         End If
 
         Try
-            Using conn As New OdbcConnection(connString)
-                conn.Open()
-                Using cmd As New OdbcCommand(sql, conn)
-                    cmd.Parameters.Add("P", OdbcType.Int).Value = CBPraticien.SelectedValue
-                    cmd.Parameters.Add("M", OdbcType.VarChar).Value = CBMotif.Text
-                    cmd.Parameters.Add("D", OdbcType.Date).Value = DTPVisite.Value
-                    cmd.Parameters.Add("C", OdbcType.Double).Value = CDbl(NudConfiance.Value)
-                    cmd.Parameters.Add("B", OdbcType.VarChar).Value = RTBBilan.Text
+            Using cmd As New OdbcCommand(sql, DbManager.Connection)
+                cmd.Parameters.Add("P", OdbcType.Int).Value = CBPraticien.SelectedValue
+                cmd.Parameters.Add("M", OdbcType.VarChar).Value = CBMotif.Text
+                cmd.Parameters.Add("D", OdbcType.Date).Value = DTPVisite.Value
+                cmd.Parameters.Add("C", OdbcType.Double).Value = CDbl(NudConfiance.Value)
+                cmd.Parameters.Add("B", OdbcType.VarChar).Value = RTBBilan.Text
 
-                    If isEdit Then
-                        cmd.Parameters.Add("ID", OdbcType.Int).Value = _editingCrId.Value
-                    Else
-                        cmd.Parameters.Add("U", OdbcType.Int).Value = _currentUserId
-                        cmd.Parameters.Add("NEWID", OdbcType.Int).Value = New Random().Next(1000, 99999)
-                    End If
+                If isEdit Then
+                    cmd.Parameters.Add("ID", OdbcType.Int).Value = _editingCrId.Value
+                Else
+                    cmd.Parameters.Add("U", OdbcType.Int).Value = _currentUserId
+                    cmd.Parameters.Add("NEWID", OdbcType.Int).Value = New Random().Next(1000, 99999)
+                End If
 
-                    cmd.ExecuteNonQuery()
-                    MessageBox.Show(If(isEdit, "Modifié avec succès !", "Enregistré avec succès !"))
+                cmd.ExecuteNonQuery()
+                MessageBox.Show(If(isEdit, "Modifié avec succès !", "Enregistré avec succès !"))
 
-                    _editingCrId = Nothing
-                    bValider.Text = "Enregistrer le Compte-Rendu"
-                    bValider.BackColor = Color.LightSkyBlue
-                    RTBBilan.Clear()
-                End Using
+                _editingCrId = Nothing
+                bValider.Text = "Enregistrer le Compte-Rendu"
+                bValider.BackColor = Color.LightSkyBlue
+                RTBBilan.Clear()
             End Using
         Catch ex As Exception
             MessageBox.Show("Erreur : " & ex.Message)

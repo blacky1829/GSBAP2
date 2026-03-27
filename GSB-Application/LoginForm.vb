@@ -2,10 +2,8 @@
 
 Public Class LoginForm
 
-    Dim myConnection As New OdbcConnection
     Dim myCommand As New OdbcCommand
     Dim myReader As OdbcDataReader
-    Dim connString As String
 
     Private Sub LoginForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         Me.StartPosition = FormStartPosition.CenterScreen
@@ -30,14 +28,9 @@ Public Class LoginForm
         txtUser.Text = "MClaire"
         txtPass.Text = "pwd456"
 
-        ' Chaîne de connexion ODBC
-        connString = "DSN=ORA14;Uid=GSBApp;Pwd=Iroise29;"
-        myConnection.ConnectionString = connString
-
+        ' Initialiser la connexion centrale
         Try
-            myConnection.Open()
-            ' Connexion OK
-            ' MessageBox.Show("Connexion Oracle Réussie") ' facultatif
+            DbManager.Initialize()
         Catch ex As OdbcException
             MessageBox.Show("Erreur de connexion : " & ex.Message)
         End Try
@@ -58,7 +51,7 @@ Public Class LoginForm
                       "WHERE Trim(USERNAME) = ? " &
                       "AND TRIM(PSWDUSER) = ?"
 
-            myCommand = New OdbcCommand(query, myConnection)
+            myCommand = New OdbcCommand(query, DbManager.Connection)
             myCommand.Parameters.Add("USERNAME", OdbcType.VarChar).Value = username
             myCommand.Parameters.Add("PASSWORD", OdbcType.VarChar).Value = password
 
@@ -94,8 +87,13 @@ Public Class LoginForm
     End Sub
 
     Private Sub LoginForm_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
-        ' Fermer la connexion si le formulaire se ferme
-        If myConnection.State = ConnectionState.Open Then myConnection.Close()
+        ' Fermer la connexion centrale si l'application se ferme via ce formulaire
+        Try
+            If Application.OpenForms.Count <= 1 Then
+                DbManager.Close()
+            End If
+        Catch
+        End Try
     End Sub
 
     Private Sub txtUser_TextChanged(sender As Object, e As EventArgs) Handles txtUser.TextChanged
