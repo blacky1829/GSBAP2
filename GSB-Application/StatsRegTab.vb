@@ -23,12 +23,60 @@ Public Class StatsRegTab
     Private flowMetrics As FlowLayoutPanel
 
     ' ---------- Constructor ----------
-    Public Sub New(regionId As Integer)
-        _regionId = regionId
-        Me.Dock = DockStyle.Fill
-        InitializeUI()
-        LoadVisitors()
-        LoadMetrics()
+    Public Sub New(regionOrUserId As Integer)
+        Try
+            ' Resolve argument: it may be a region id or a user id. Try to detect.
+            Dim resolvedId As Integer = regionOrUserId
+
+            ' Ensure central connection is available
+            If DbManager.Connection Is Nothing OrElse DbManager.Connection.State <> ConnectionState.Open Then
+                Try
+                    DbManager.Initialize()
+                Catch exInit As Exception
+                    Dim temp = System.IO.Path.GetTempPath()
+                    Try
+                        System.IO.File.AppendAllText(System.IO.Path.Combine(temp, "statsreg_error.log"), DateTime.Now.ToString("s") & " - DbManager.Initialize failed: " & exInit.ToString() & Environment.NewLine)
+                    Catch
+                    End Try
+                    MessageBox.Show("Impossible d'ouvrir la connexion à la base : " & exInit.Message, "Erreur connexion", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                End Try
+            End If
+
+            ' If a region with this ID exists, use it
+            Using cmdCheck As New OdbcCommand("SELECT COUNT(*) FROM gsbAdmin.REGION WHERE ID = ?", DbManager.Connection)
+                cmdCheck.Parameters.Add(New OdbcParameter With {.OdbcType = OdbcType.Int, .Value = regionOrUserId})
+                Dim cntObj = cmdCheck.ExecuteScalar()
+                If cntObj IsNot Nothing AndAlso Convert.ToInt32(cntObj) > 0 Then
+                    resolvedId = regionOrUserId
+                Else
+                    ' Otherwise try to find the region id for this user
+                    Using cmd As New OdbcCommand("SELECT R.ID FROM gsbAdmin.REGION R JOIN gsbAdmin.UTILISATEUR U ON U.LIBELLE = R.LIBELLE WHERE U.IDUSER = ?", DbManager.Connection)
+                        cmd.Parameters.Add(New OdbcParameter With {.OdbcType = OdbcType.Int, .Value = regionOrUserId})
+                        Dim obj = cmd.ExecuteScalar()
+                        If obj IsNot Nothing AndAlso Not IsDBNull(obj) Then
+                            resolvedId = Convert.ToInt32(obj)
+                        End If
+                    End Using
+                End If
+            End Using
+
+            _regionId = resolvedId
+            Me.Dock = DockStyle.Fill
+            InitializeUI()
+            LoadVisitors()
+            LoadMetrics()
+        Catch ex As Exception
+            ' If any unexpected error occurs during construction, log to temp and show a messagebox so tab doesn't silently disappear
+            Try
+                Dim temp = System.IO.Path.GetTempPath()
+                System.IO.File.AppendAllText(System.IO.Path.Combine(temp, "statsreg_error.log"), DateTime.Now.ToString("s") & " - Constructor fatal error: " & ex.ToString() & Environment.NewLine)
+            Catch : End Try
+            MessageBox.Show("Erreur lors de la construction de l'onglet Stats régionales : " & ex.Message & vbCrLf & "Voir %TEMP%\statsreg_error.log pour plus de détails.", "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            ' create minimal UI so tab exists
+            _regionId = regionOrUserId
+            Me.Dock = DockStyle.Fill
+            InitializeUI()
+        End Try
     End Sub
 
     ' ---------- UI ----------
@@ -132,6 +180,11 @@ Public Class StatsRegTab
         lstVisitors.Items.Clear()
 
         Try
+            ' debug log
+            Try
+                Dim logPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "statsreg_debug.log")
+                System.IO.File.AppendAllText(logPath, DateTime.Now.ToString("s") & " - LoadVisitors start regionId=" & _regionId.ToString() & " DBState=" & If(DbManager.Connection Is Nothing, "null", DbManager.Connection.State.ToString()) & Environment.NewLine)
+            Catch : End Try
             ' REGION is linked to UTILISATEUR by LIBELLE (string).
             ' Allow filtering by either region ID or region libelle: try both to be safe.
             Dim sql As String =
@@ -164,8 +217,16 @@ Public Class StatsRegTab
                         )
                     End While
                 End Using
+                Try
+                    Dim logPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "statsreg_debug.log")
+                    System.IO.File.AppendAllText(logPath, DateTime.Now.ToString("s") & " - LoadVisitors finished, count=" & lstVisitors.Items.Count.ToString() & Environment.NewLine)
+                Catch : End Try
             End Using
         Catch ex As Exception
+            Try
+                Dim logPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "statsreg_debug.log")
+                System.IO.File.AppendAllText(logPath, DateTime.Now.ToString("s") & " - LoadVisitors error: " & ex.ToString() & Environment.NewLine)
+            Catch : End Try
             MessageBox.Show("Erreur chargement visiteurs : " & ex.Message,
                             "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error)
         End Try
@@ -176,26 +237,41 @@ Public Class StatsRegTab
         flowMetrics.Controls.Clear()
 
         Try
-            Dim userFilter As String = If(_selectedVisitorId > 0, " AND C.IDUSER = ? ", "")
+            Try
+                Dim logPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "statsreg_debug.log")
+                System.IO.File.AppendAllText(logPath, DateTime.Now.ToString("s") & " - LoadMetrics start regionId=" & _regionId.ToString() & " selectedVisitor=" & _selectedVisitorId.ToString() & Environment.NewLine)
+            Catch : End Try
+            Dim userFilter As String = If(_selectedVisitorId > 0, " AND C.IDUSER = ?", "")
 
+            ' All metrics filtered to the region via U.LIBELLE = R.LIBELLE and R.ID = ?
             AddMetric(
                 "Nombre de visites",
                 "SELECT COUNT(*) FROM gsbAdmin.CR C " &
-                "WHERE C.DATEVISITE BETWEEN ? AND ?" & userFilter)
+                "JOIN gsbAdmin.UTILISATEUR U ON C.IDUSER = U.IDUSER " &
+                "JOIN gsbAdmin.REGION R ON U.LIBELLE = R.LIBELLE " &
+                "WHERE R.ID = ? AND C.DATEVISITE BETWEEN ? AND ?" & userFilter)
 
             AddMetric(
                 "Échantillons distribués",
                 "SELECT NVL(SUM(D.NOMBREECHANTILLONS),0) " &
                 "FROM gsbAdmin.DISTRIBUTION D " &
                 "JOIN gsbAdmin.CR C ON C.IDCR = D.IDCR " &
-                "WHERE C.DATEVISITE BETWEEN ? AND ?" & userFilter)
+                "JOIN gsbAdmin.UTILISATEUR U ON C.IDUSER = U.IDUSER " &
+                "JOIN gsbAdmin.REGION R ON U.LIBELLE = R.LIBELLE " &
+                "WHERE R.ID = ? AND C.DATEVISITE BETWEEN ? AND ?" & userFilter)
 
             AddMetric(
                 "Praticiens visités",
                 "SELECT COUNT(DISTINCT C.IDPRAT) FROM gsbAdmin.CR C " &
-                "WHERE C.DATEVISITE BETWEEN ? AND ?" & userFilter)
+                "JOIN gsbAdmin.UTILISATEUR U ON C.IDUSER = U.IDUSER " &
+                "JOIN gsbAdmin.REGION R ON U.LIBELLE = R.LIBELLE " &
+                "WHERE R.ID = ? AND C.DATEVISITE BETWEEN ? AND ?" & userFilter)
 
         Catch ex As Exception
+            Try
+                Dim logPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "statsreg_debug.log")
+                System.IO.File.AppendAllText(logPath, DateTime.Now.ToString("s") & " - LoadMetrics error: " & ex.ToString() & Environment.NewLine)
+            Catch : End Try
             MessageBox.Show("Erreur statistiques : " & ex.Message,
                             "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error)
         End Try
@@ -206,6 +282,19 @@ Public Class StatsRegTab
     ' ---------- Metric helper ----------
     Private Sub AddMetric(title As String, sql As String)
         Using cmd As New OdbcCommand(sql, DbManager.Connection)
+            ' If the SQL expects a region id first (R.ID = ?), add it before dates
+            If sql.Contains("R.ID = ?") Or sql.Contains("R.ID=?") Then
+                cmd.Parameters.Add(New OdbcParameter With {
+                    .OdbcType = OdbcType.Int,
+                    .Value = _regionId
+                })
+            ElseIf sql.Contains("R.LIBELLE = ?") Or sql.Contains("R.LIBELLE=?") Then
+                cmd.Parameters.Add(New OdbcParameter With {
+                    .OdbcType = OdbcType.VarChar,
+                    .Value = _regionId.ToString()
+                })
+            End If
+
             ' dates (toujours présents)
             cmd.Parameters.Add(New OdbcParameter With {
                 .OdbcType = OdbcType.Date,
@@ -238,21 +327,27 @@ Public Class StatsRegTab
             .BorderStyle = BorderStyle.FixedSingle,
             .Padding = New Padding(10),
             .Margin = New Padding(5),
-            .Height = 60
+            .AutoSize = True,
+            .AutoSizeMode = AutoSizeMode.GrowAndShrink
         }
 
         Dim lblTitle As New Label With {
             .Text = title,
             .Font = New Font("Segoe UI", 9, FontStyle.Bold),
+            .AutoSize = True,
             .Dock = DockStyle.Top
         }
 
         Dim lblValue As New Label With {
             .Text = value,
             .Font = New Font("Segoe UI", 11),
-            .Dock = DockStyle.Fill
+            .AutoSize = True,
+            .Dock = DockStyle.Top
         }
+        ' mark for resize wrapping
+        lblValue.Tag = "metricValue"
 
+        ' Add in order: title then value (value below title)
         p.Controls.Add(lblValue)
         p.Controls.Add(lblTitle)
         Return p
@@ -267,6 +362,12 @@ Public Class StatsRegTab
 
         For Each ctrl As Control In flowMetrics.Controls
             ctrl.Width = targetWidth
+            ' adjust inner value labels to wrap within the panel
+            For Each child As Control In ctrl.Controls
+                If child.Tag IsNot Nothing AndAlso child.Tag.ToString() = "metricValue" Then
+                    child.MaximumSize = New Size(Math.Max(100, targetWidth - ctrl.Padding.Horizontal - 20), 0)
+                End If
+            Next
         Next
     End Sub
 

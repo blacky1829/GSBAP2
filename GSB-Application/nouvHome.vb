@@ -2,6 +2,7 @@
 Imports System.Drawing
 Imports System.Collections.Generic
 Imports System.Data.Odbc
+Imports System.IO
 
 Public Class nouvHome
 
@@ -23,25 +24,37 @@ Public Class nouvHome
 
         ' Définition des onglets
         Dim tabs As New Dictionary(Of String, (roles As String, factory As Func(Of UserControl))) From {
-            {"Créer un C.R.", ("Visiteur,Delegue", Function()
+            {"Créer un C.R.", ("VISITEUR,DELEGUE", Function()
                                                        _instanceCreerCR = New CreerCRTab(UserId)
                                                        Return _instanceCreerCR
                                                    End Function)},
-            {"Mes statistiques", ("Visiteur,Delegue", Function() New StatsTab(UserId))},
-            {"Mes C.R.", ("Visiteur,Delegue", Function()
+            {"Mes statistiques", ("VISITEUR,DELEGUE", Function() New StatsTab(UserId))},
+            {"Mes C.R.", ("VISITEUR,DELEGUE", Function()
                                                   _instanceMesCR = New MesCRTab(UserId)
                                                   ' IMPORTANT : On s'abonne à l'événement de modification ici
                                                   AddHandler _instanceMesCR.OnEditRequested, AddressOf GérerDemandeModification
                                                   Return _instanceMesCR
                                               End Function)},
-            {"Stats. régionales", ("Delegue", Function() New StatsRegTab(UserId))},
-            {"Stats. de secteur", ("Responsable", Function() New StatsSecteurTab())}
+            {"Stats. régionales", ("DELEGUE", Function() New StatsRegTab(UserId))},
+            {"Stats. de secteur", ("RESPONSABLE", Function() New StatsSecteurTab())}
         }
 
         ' Parcourir et ajouter les onglets autorisés
+        Try
+            Dim logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tab_creation.log")
+            File.AppendAllText(logPath, DateTime.Now.ToString("s") & " - HomeForm_Load userRole='" & UserRole & "' userId='" & UserId.ToString() & "'" & Environment.NewLine)
+        Catch : End Try
+
         For Each kvp In tabs
-            Dim allowedRoles = kvp.Value.roles.Split(","c).Select(Function(r) r.Trim()).ToArray()
-            If allowedRoles.Contains(UserRole) Then
+            Dim allowedRoles = kvp.Value.roles.Split(","c).Select(Function(r) r.Trim().ToUpper()).ToArray()
+            Dim userRoleUpper = UserRole.Trim().ToUpper()
+            Dim allow = allowedRoles.Contains(userRoleUpper)
+            Try
+                Dim logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tab_creation.log")
+                File.AppendAllText(logPath, DateTime.Now.ToString("s") & " - Tab='" & kvp.Key & "' allowedRoles='" & kvp.Value.roles & "' userRole='" & UserRole & "' userRoleUpper='" & userRoleUpper & "' allowed=" & allow.ToString() & Environment.NewLine)
+            Catch : End Try
+
+            If allow Then
                 Dim tp As New TabPage(kvp.Key) With {.Padding = New Padding(3)}
                 Dim ctrl As UserControl = CreateControlSafe(kvp.Value.factory)
 
@@ -49,6 +62,14 @@ Public Class nouvHome
                     ctrl.Dock = DockStyle.Fill
                     tp.Controls.Add(ctrl)
                     TabControl1.TabPages.Add(tp)
+                    Try
+                        Dim logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tab_creation.log")
+                        File.AppendAllText(logPath, DateTime.Now.ToString("s") & " - TabAdded='" & kvp.Key & "'" & Environment.NewLine)
+                    Catch : End Try
+                Else
+                    ' show detailed error to help debugging when a tab fails to create
+                    MessageBox.Show("Échec création onglet: '" & kvp.Key & "'. Voir tab_errors.log pour la pile.
+" & "Détails : " & Environment.NewLine & "(voir log)", "Erreur onglet", MessageBoxButtons.OK, MessageBoxIcon.Error)
                 End If
             End If
         Next
@@ -79,7 +100,13 @@ Public Class nouvHome
         Try
             Return factory.Invoke()
         Catch ex As Exception
-            Debug.WriteLine("Erreur création contrôle : " & ex.Message)
+            ' Log to file and show message so developer can see why the tab failed to create
+            Try
+                Dim logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tab_errors.log")
+                File.AppendAllText(logPath, DateTime.Now.ToString("s") & " - CreateControlSafe error: " & ex.ToString() & Environment.NewLine)
+            Catch
+            End Try
+            MessageBox.Show("Erreur lors de la création d'un onglet : " & ex.Message & vbCrLf & "Voir tab_errors.log pour plus de détails.", "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error)
             Return Nothing
         End Try
     End Function
