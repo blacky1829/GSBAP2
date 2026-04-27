@@ -122,6 +122,9 @@
     <Import Include="System.Threading.Tasks" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="LogsTab.vb">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="CreerCRTab.vb">
       <SubType>UserControl</SubType>
     </Compile>
@@ -157,12 +160,6 @@
     <Compile Include="nouvHome.vb">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="StatsRegTab.vb">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="StatsSecteurTab.vb">
-      <SubType>UserControl</SubType>
-    </Compile>
     <Compile Include="StatsTab.vb">
       <SubType>UserControl</SubType>
     </Compile>
@@ -182,12 +179,6 @@
     </EmbeddedResource>
     <EmbeddedResource Include="nouvHome.resx">
       <DependentUpon>nouvHome.vb</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="StatsRegTab.resx">
-      <DependentUpon>StatsRegTab.vb</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="StatsSecteurTab.resx">
-      <DependentUpon>StatsSecteurTab.vb</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="StatsTab.resx">
       <DependentUpon>StatsTab.vb</DependentUpon>

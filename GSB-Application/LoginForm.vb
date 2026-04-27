@@ -25,8 +25,8 @@ Public Class LoginForm
         txtPass.ForeColor = Color.Black
 
         ' Valeurs par défaut pour tests
-        txtUser.Text = "MClaire"
-        txtPass.Text = "pwd456"
+        txtUser.Text = "SJoe"
+        txtPass.Text = "pass456"
 
         ' Initialiser la connexion centrale
         Try
@@ -59,7 +59,7 @@ Public Class LoginForm
 
             If myReader.Read() Then
                 Dim fullname As String = myReader("NOMUSER").ToString() & " " & myReader("PRENOMUSER").ToString()
-                Dim role As String = myReader("ROLE").ToString() ' <-- récupérer le rôle
+                Dim role As String = myReader("ROLE").ToString()
                 Dim id As String = myReader("IDUSER")
 
                 Dim main As New nouvHome()
@@ -67,6 +67,7 @@ Public Class LoginForm
                 main.UserRole = role
                 main.UserId = id
                 main.LoginRef = Me
+                main.dateDebutSession = DateTime.Now
                 Me.Hide()
                 main.Show()
 

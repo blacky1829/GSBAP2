@@ -10,11 +10,14 @@ Public Class nouvHome
     Public Property UserFullName As String
     Public Property UserRole As String
     Public Property UserId As Integer
+
+    Public Property dateDebutSession As DateTime
     Public Property LoginRef As LoginForm
 
     ' Références pour la communication entre onglets
     Private _instanceCreerCR As CreerCRTab
     Private _instanceMesCR As MesCRTab
+    Private _instanceLogsTab As LogsTab
 
     Private Sub HomeForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         Me.Text = "Bienvenue, " & UserFullName
@@ -24,20 +27,22 @@ Public Class nouvHome
 
         ' Définition des onglets
         Dim tabs As New Dictionary(Of String, (roles As String, factory As Func(Of UserControl))) From {
-            {"Créer un C.R.", ("VISITEUR,DELEGUE", Function()
-                                                       _instanceCreerCR = New CreerCRTab(UserId)
-                                                       Return _instanceCreerCR
-                                                   End Function)},
-            {"Mes statistiques", ("VISITEUR,DELEGUE", Function() New StatsTab(UserId))},
-            {"Mes C.R.", ("VISITEUR,DELEGUE", Function()
-                                                  _instanceMesCR = New MesCRTab(UserId)
-                                                  ' IMPORTANT : On s'abonne à l'événement de modification ici
-                                                  AddHandler _instanceMesCR.OnEditRequested, AddressOf GérerDemandeModification
-                                                  Return _instanceMesCR
-                                              End Function)},
-            {"Stats. régionales", ("DELEGUE", Function() New StatsRegTab(UserId))},
-            {"Stats. de secteur", ("RESPONSABLE", Function() New StatsSecteurTab())}
-        }
+    {"Créer un C.R.", ("VISITEUR,DELEGUE", Function()
+                                               _instanceCreerCR = New CreerCRTab(UserId)
+                                               Return _instanceCreerCR
+                                           End Function)},
+    {"Mes statistiques", ("VISITEUR,DELEGUE", Function() New StatsTab(UserId))},
+    {"Mes C.R.", ("VISITEUR,DELEGUE", Function()
+                                          _instanceMesCR = New MesCRTab(UserId)
+                                          ' IMPORTANT : On s'abonne à l'événement de modification ici
+                                          AddHandler _instanceMesCR.OnEditRequested, AddressOf GérerDemandeModification
+                                          Return _instanceMesCR
+                                      End Function)},
+    {"Logs", ("RESPONSABLE", Function()
+                                 _instanceLogsTab = New LogsTab()
+                                 Return _instanceLogsTab
+                             End Function)}
+                                      }
 
         ' Parcourir et ajouter les onglets autorisés
         Try
@@ -112,6 +117,23 @@ Public Class nouvHome
     End Function
 
     Private Sub btnLogout_Click(sender As Object, e As EventArgs)
+        Dim dateFinSession As DateTime = DateTime.Now
+        Try
+            Dim query As String = "INSERT INTO GSBAdmin.SESSION_LOGS (LOGIN, DATEDEBUT, DATEFIN) VALUES (?, ?, ?)"
+            Using cmd As New OdbcCommand(query, DbManager.Connection)
+                cmd.Parameters.Add("LOGIN", OdbcType.Int).Value = UserId
+                cmd.Parameters.Add("DATEDEBUT", OdbcType.DateTime).Value = dateDebutSession
+                cmd.Parameters.Add("DATEFIN", OdbcType.DateTime).Value = dateFinSession
+                cmd.ExecuteNonQuery()
+            End Using
+        Catch ex As OdbcException
+            Dim msg As String = "Erreur ODBC : " & ex.Message & vbCrLf
+            For Each err As OdbcError In ex.Errors
+                msg &= "Code : " & err.NativeError & " - " & err.Message & vbCrLf
+            Next
+            MessageBox.Show(msg)
+        End Try
+        ' insérer ici commande sql pour les logs
         Me.Close()
         If LoginRef IsNot Nothing Then LoginRef.Show()
     End Sub
